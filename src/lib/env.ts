@@ -68,6 +68,10 @@ export const envSchema = z.object({
   // Comma-separated allowlist. Empty means no cross-origin access.
   CORS_ALLOWED_ORIGINS: z.string().default(''),
 
+  // Comma-separated list of trusted proxy CIDRs (e.g. Render private ranges).
+  // Empty means no proxies are trusted (trustProxy: false), preventing header spoofing.
+  TRUSTED_PROXY_CIDRS: z.string().default(''),
+
   // Optional S3-compatible storage. Server-only credentials.
   S3_ENDPOINT: z.string().url().optional(),
   S3_REGION: z.string().optional(),
