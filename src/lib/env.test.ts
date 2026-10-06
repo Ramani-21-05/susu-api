@@ -141,4 +141,14 @@ describe('parseEnv', () => {
       expect(String(error)).not.toContain('super-secret-xyz');
     }
   });
+
+  it('accepts and defaults TRUSTED_PROXY_CIDRS', () => {
+    const envDefault = parseEnv(validEnv());
+    expect(envDefault.TRUSTED_PROXY_CIDRS).toBe('');
+
+    const envConfigured = parseEnv(
+      validEnv({ TRUSTED_PROXY_CIDRS: '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16' }),
+    );
+    expect(envConfigured.TRUSTED_PROXY_CIDRS).toBe('10.0.0.0/8,172.16.0.0/12,192.168.0.0/16');
+  });
 });
