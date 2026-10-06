@@ -85,10 +85,19 @@ export function createRegistrationStore(db: Database): RegistrationStore {
       return db.transaction(async (tx) => {
         // The lock is the whole reason this is a transaction. The cap is a
         // predicate over the account's live rows, so the check and the insert
-        // below must observe the same set: locking those rows serializes
-        // concurrent registrations for one account, and the count is taken over
-        // exactly the rows just locked. Without this, two concurrent calls both
-        // read countLive = MAX - 1 and both insert, exceeding the cap.
+        // below must observe the same set — but `SELECT ... FOR UPDATE` only
+        // locks rows that already exist. Under READ COMMITTED it cannot stop a
+        // concurrent transaction from inserting a new row the first one never
+        // saw (a phantom read): two concurrent calls can both read
+        // countLive = MAX - 1, both pass the cap check, and both insert.
+        //
+        // The advisory lock is the actual serialization point. It is keyed by
+        // the account, so concurrent registrations for one account queue behind
+        // each other while different accounts never block. It is
+        // transaction-scoped: held until commit or rollback, then released
+        // automatically.
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`);
+
         const live = await tx
           .select({ contractId: groupRegistrations.contractId })
           .from(groupRegistrations)
