@@ -1,5 +1,5 @@
 import { Writable } from 'node:stream';
-import type { FastifyLoggerOptions } from 'fastify';
+import Fastify, { type FastifyLoggerOptions } from 'fastify';
 import pino, { type LoggerOptions } from 'pino';
 import { describe, expect, it } from 'vitest';
 import { buildLoggerOptions, REDACT_PATHS } from './logger';
@@ -186,6 +186,15 @@ describe('logger serialization & redaction', () => {
       ).not.toContain(secretValue);
     }
 
+    // Verify header paths are redacted to '[redacted]'
+    const reqHeaders = (entry.req as { headers?: Record<string, string> })?.headers;
+    expect(reqHeaders?.authorization).toBe('[redacted]');
+    expect(reqHeaders?.cookie).toBe('[redacted]');
+    expect(reqHeaders?.['x-api-key']).toBe('[redacted]');
+
+    const resHeaders = (entry.res as { headers?: Record<string, string> })?.headers;
+    expect(resHeaders?.['set-cookie']).toBe('[redacted]');
+
     // Verify root-level values are redacted to '[redacted]'
     expect(entry.DATABASE_URL).toBe('[redacted]');
     expect(entry.SUPABASE_SERVICE_ROLE_KEY).toBe('[redacted]');
@@ -208,5 +217,15 @@ describe('logger serialization & redaction', () => {
     // Verify safe fields remain intact
     expect(entry.publicField).toBe('safe-public-data');
     expect(serialized).toContain('safe-public-data');
+  });
+
+  it('initializes seamlessly inside a Fastify instance', async () => {
+    const app = Fastify({
+      logger: buildLoggerOptions('test'),
+    });
+
+    expect(app.log).toBeDefined();
+    expect(typeof app.log.info).toBe('function');
+    await app.close();
   });
 });
