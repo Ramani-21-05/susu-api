@@ -30,8 +30,8 @@ export const REDACT_PATHS = [
 /**
  * Builds Fastify logger options with secret redaction enabled.
  *
- * Pretty output is used only outside production; production emits JSON for
- * structured aggregation.
+ * Emits JSON logs across environments for structured aggregation, setting
+ * the log level to 'info' in production and 'debug' outside production.
  */
 export function buildLoggerOptions(nodeEnv: string): FastifyServerOptions['logger'] {
   const isProduction = nodeEnv === 'production';
@@ -42,6 +42,5 @@ export function buildLoggerOptions(nodeEnv: string): FastifyServerOptions['logge
       paths: [...REDACT_PATHS],
       censor: '[redacted]',
     },
-    ...(isProduction ? {} : { transport: undefined }),
   };
 }
